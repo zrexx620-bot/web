@@ -3,252 +3,113 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Absensi X-7</title>
+<title>Sistem Absensi Enterprise</title>
+
+<link rel="manifest" href="manifest.json">
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+apiKey: "ISI_APIKEY",
+authDomain: "ISI_DOMAIN",
+databaseURL: "ISI_DB_URL",
+projectId: "ISI_PROJECT",
+storageBucket: "ISI_BUCKET",
+messagingSenderId: "ISI_ID",
+appId: "ISI_APPID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.absen = function(){
+let nama = document.getElementById("nama").value;
+let kelas = document.getElementById("kelas").value;
+let status = document.getElementById("status").value;
+
+if(!nama || !kelas || !status){
+alert("Lengkapi data!");
+return;
+}
+
+let tanggal = new Date().toLocaleDateString("id-ID");
+
+push(ref(db,"absensi/"+tanggal),{
+nama,kelas,status
+});
+
+alert("Absensi berhasil!");
+}
+
+onValue(ref(db,"absensi"),(snapshot)=>{
+console.log(snapshot.val());
+});
+</script>
 
 <style>
 body{
-    font-family:'Segoe UI',sans-serif;
-    margin:0;
-    background:linear-gradient(135deg,#4e73df,#1cc88a);
-}
-
-.container{
-    max-width:1000px;
-    margin:20px auto;
-    padding:20px;
+margin:0;
+font-family:Segoe UI;
+background:linear-gradient(135deg,#4e73df,#1cc88a);
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
 }
 
 .card{
-    background:rgba(255,255,255,0.2);
-    backdrop-filter:blur(15px);
-    padding:20px;
-    border-radius:20px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.2);
-    color:white;
+background:white;
+padding:25px;
+border-radius:20px;
+width:95%;
+max-width:500px;
 }
 
-h1{text-align:center;}
-
-input{
-    padding:8px;
-    border-radius:10px;
-    border:none;
-    margin:5px 0;
+input,select{
+width:100%;
+padding:10px;
+margin:8px 0;
+border-radius:8px;
+border:1px solid #ccc;
 }
 
 button{
-    padding:6px 10px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
-    margin:2px;
+width:100%;
+padding:10px;
+background:#4e73df;
+color:white;
+border:none;
+border-radius:8px;
+font-weight:bold;
 }
-
-.login-btn{background:#1cc88a;color:white;width:100%;}
-.logout{background:#e74a3b;color:white;}
-.hadir{background:#2ecc71;color:white;}
-.izin{background:#f1c40f;color:white;}
-.sakit{background:#3498db;color:white;}
-.alpha{background:#c0392b;color:white;}
-.primary{background:#4e73df;color:white;}
-.dark{background:#2c3e50;color:white;}
-
-table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:10px;
-    background:white;
-    color:black;
-    border-radius:10px;
-    overflow:hidden;
-}
-
-th,td{
-    padding:8px;
-    text-align:center;
-    border-bottom:1px solid #ddd;
-}
-
-th{background:#4e73df;color:white;}
-
-.rekap{
-    margin-top:10px;
-    background:white;
-    color:black;
-    padding:10px;
-    border-radius:10px;
-}
-
-.hidden{display:none;}
 </style>
 </head>
 <body>
 
-<div class="container">
+<div class="card">
+<h2>ABSENSI ENTERPRISE</h2>
+<p>SMA Negeri 1 Mayong</p>
 
-<!-- LOGIN -->
-<div class="card" id="loginPage">
-<h1>Login Guru</h1>
-<input type="text" id="username" placeholder="Username">
-<input type="password" id="password" placeholder="Password">
-<button class="login-btn" onclick="login()">Login</button>
-</div>
+<input type="text" id="nama" placeholder="Nama">
+<select id="kelas">
+<option>X-A</option>
+<option>X-B</option>
+<option>XI-A</option>
+<option>XI-B</option>
+</select>
 
-<!-- DASHBOARD -->
-<div class="card hidden" id="dashboard">
-<h1>ABSENSI DIGITAL</h1>
+<select id="status">
+<option>Hadir</option>
+<option>Izin</option>
+<option>Sakit</option>
+<option>Alpha</option>
+</select>
 
-<p><b>Sekolah:</b> SMA Negeri 1 Mayong</p>
-<p><b>Guru:</b> Bu Santy</p>
-<p><b>Mata Pelajaran:</b> Seni Tari</p>
-<p><b>Kelas:</b> X</p>
-<p><b>Tanggal:</b> <span id="tanggal"></span></p>
-
-<button class="logout" onclick="logout()">Logout</button>
-<button class="primary" onclick="hadirSemua()">Hadir Semua</button>
-<button class="dark" onclick="downloadExcel()">Download Excel</button>
-<button class="alpha" onclick="resetData()">Reset Data</button>
-
-<br><br>
-<input type="text" id="namaBaru" placeholder="Tambah Nama Siswa">
-<button class="primary" onclick="tambahSiswa()">Tambah</button>
-
-<table>
-<thead>
-<tr>
-<th>No</th>
-<th>Nama</th>
-<th>H</th>
-<th>I</th>
-<th>S</th>
-<th>A</th>
-<th>Hapus</th>
-</tr>
-</thead>
-<tbody id="dataSiswa"></tbody>
-</table>
-
-<div class="rekap">
-<b>Rekap:</b>
-Hadir: <span id="rekapH">0</span> |
-Izin: <span id="rekapI">0</span> |
-Sakit: <span id="rekapS">0</span> |
-Alpha: <span id="rekapA">0</span>
-</div>
+<button onclick="absen()">Kirim Absensi</button>
 
 </div>
-</div>
-
-<script>
-// LOGIN
-function login(){
-if(username.value==="KING MU" && password.value==="777"){
-loginPage.classList.add("hidden");
-dashboard.classList.remove("hidden");
-}else{
-alert("Salah Goblok!");
-}
-}
-function logout(){location.reload();}
-
-// DATA
-let siswa=JSON.parse(localStorage.getItem("siswa"))||["Damar","Nakhla","Fatah"];
-let absensi=JSON.parse(localStorage.getItem("absensi"))||{};
-
-function simpan(){
-localStorage.setItem("siswa",JSON.stringify(siswa));
-localStorage.setItem("absensi",JSON.stringify(absensi));
-}
-
-function tampil(){
-dataSiswa.innerHTML="";
-siswa.forEach((nama,i)=>{
-dataSiswa.innerHTML+=`
-<tr>
-<td>${i+1}</td>
-<td contenteditable="true" onblur="editNama(${i},this.innerText)">${nama}</td>
-<td><button class="hadir" onclick="setStatus('${nama}','H')">✔</button></td>
-<td><button class="izin" onclick="setStatus('${nama}','I')">✔</button></td>
-<td><button class="sakit" onclick="setStatus('${nama}','S')">✔</button></td>
-<td><button class="alpha" onclick="setStatus('${nama}','A')">✔</button></td>
-<td><button class="alpha" onclick="hapus(${i})">X</button></td>
-</tr>
-`;
-});
-updateRekap();
-simpan();
-}
-
-function setStatus(nama,status){
-absensi[nama]=status;
-simpan();
-updateRekap();
-}
-
-function hadirSemua(){
-siswa.forEach(n=>absensi[n]="H");
-simpan();
-updateRekap();
-}
-
-function tambahSiswa(){
-if(namaBaru.value!=""){
-siswa.push(namaBaru.value);
-namaBaru.value="";
-tampil();
-}
-}
-
-function hapus(i){
-delete absensi[siswa[i]];
-siswa.splice(i,1);
-tampil();
-}
-
-function editNama(i,namaBaru){
-absensi[namaBaru]=absensi[siswa[i]];
-delete absensi[siswa[i]];
-siswa[i]=namaBaru;
-tampil();
-}
-
-function resetData(){
-if(confirm("Yakin reset semua data?")){
-localStorage.clear();
-location.reload();
-}
-}
-
-function updateRekap(){
-let H=0,I=0,S=0,A=0;
-for(let key in absensi){
-if(absensi[key]=="H")H++;
-if(absensi[key]=="I")I++;
-if(absensi[key]=="S")S++;
-if(absensi[key]=="A")A++;
-}
-rekapH.innerText=H;
-rekapI.innerText=I;
-rekapS.innerText=S;
-rekapA.innerText=A;
-}
-
-function downloadExcel(){
-let csv="No,Nama,Status\n";
-siswa.forEach((nama,i)=>{
-csv+=`${i+1},${nama},${absensi[nama]||""}\n`;
-});
-let blob=new Blob([csv],{type:"text/csv"});
-let a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="absensi.csv";
-a.click();
-}
-
-tanggal.innerText=new Date().toLocaleDateString("id-ID");
-tampil();
-</script>
 
 </body>
 </html>
