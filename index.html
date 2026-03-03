@@ -3,50 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistem Absensi Enterprise</title>
-
-<link rel="manifest" href="manifest.json">
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const firebaseConfig = {
-apiKey: "ISI_APIKEY",
-authDomain: "ISI_DOMAIN",
-databaseURL: "ISI_DB_URL",
-projectId: "ISI_PROJECT",
-storageBucket: "ISI_BUCKET",
-messagingSenderId: "ISI_ID",
-appId: "ISI_APPID"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-window.absen = function(){
-let nama = document.getElementById("nama").value;
-let kelas = document.getElementById("kelas").value;
-let status = document.getElementById("status").value;
-
-if(!nama || !kelas || !status){
-alert("Lengkapi data!");
-return;
-}
-
-let tanggal = new Date().toLocaleDateString("id-ID");
-
-push(ref(db,"absensi/"+tanggal),{
-nama,kelas,status
-});
-
-alert("Absensi berhasil!");
-}
-
-onValue(ref(db,"absensi"),(snapshot)=>{
-console.log(snapshot.val());
-});
-</script>
+<title>Sistem Absensi Resmi - SMA Negeri 1 Mayong</title>
 
 <style>
 body{
@@ -56,7 +13,7 @@ background:linear-gradient(135deg,#4e73df,#1cc88a);
 display:flex;
 justify-content:center;
 align-items:center;
-height:100vh;
+min-height:100vh;
 }
 
 .card{
@@ -64,36 +21,62 @@ background:white;
 padding:25px;
 border-radius:20px;
 width:95%;
-max-width:500px;
+max-width:600px;
+box-shadow:0 10px 25px rgba(0,0,0,0.2);
 }
+
+h2{text-align:center;color:#4e73df;}
 
 input,select{
 width:100%;
 padding:10px;
 margin:8px 0;
-border-radius:8px;
+border-radius:10px;
 border:1px solid #ccc;
 }
 
 button{
 width:100%;
 padding:10px;
+border:none;
+border-radius:10px;
 background:#4e73df;
 color:white;
-border:none;
-border-radius:8px;
 font-weight:bold;
+cursor:pointer;
+margin-top:5px;
 }
+
+table{
+width:100%;
+margin-top:15px;
+border-collapse:collapse;
+font-size:14px;
+}
+
+th,td{
+padding:8px;
+border-bottom:1px solid #ddd;
+text-align:center;
+}
+
+th{background:#4e73df;color:white;}
+
+.hidden{display:none;}
 </style>
 </head>
 <body>
 
 <div class="card">
-<h2>ABSENSI ENTERPRISE</h2>
-<p>SMA Negeri 1 Mayong</p>
 
-<input type="text" id="nama" placeholder="Nama">
+<h2>ABSENSI RESMI</h2>
+<p style="text-align:center;">SMA Negeri 1 Mayong</p>
+
+<!-- FORM SISWA -->
+<div id="formSiswa">
+<input type="text" id="nama" placeholder="Masukkan Nama">
 <select id="kelas">
+<option value="">-- Pilih Kelas --</option>
 <option>X-A</option>
 <option>X-B</option>
 <option>XI-A</option>
@@ -101,15 +84,130 @@ font-weight:bold;
 </select>
 
 <select id="status">
+<option value="">-- Pilih Status --</option>
 <option>Hadir</option>
 <option>Izin</option>
 <option>Sakit</option>
 <option>Alpha</option>
 </select>
 
-<button onclick="absen()">Kirim Absensi</button>
+<button onclick="kirim()">Kirim Absensi</button>
+<hr>
+<button onclick="bukaGuru()">Login Guru</button>
+</div>
+
+<!-- PANEL GURU -->
+<div id="panelGuru" class="hidden">
+<h3>Panel Guru</h3>
+<input type="password" id="pinGuru" placeholder="Masukkan PIN Guru">
+<button onclick="loginGuru()">Masuk</button>
+
+<div id="rekapArea" class="hidden">
+<h4>Rekap Hari Ini</h4>
+<select id="filterKelas" onchange="tampilkanRekap()">
+<option value="semua">Semua Kelas</option>
+<option>X-7</option>
+</select>
+
+<table>
+<thead>
+<tr>
+<th>No</th>
+<th>Nama</th>
+<th>Kelas</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="rekapData"></tbody>
+</table>
+
+<button onclick="logoutGuru()">Logout Guru</button>
+</div>
+</div>
 
 </div>
+
+<script>
+let hariIni = new Date().toLocaleDateString("id-ID");
+let database = JSON.parse(localStorage.getItem("absensiResmi")) || {};
+
+if(!database[hariIni]) database[hariIni] = [];
+
+function simpan(){
+localStorage.setItem("absensiResmi", JSON.stringify(database));
+}
+
+function kirim(){
+let nama = document.getElementById("nama").value.trim();
+let kelas = document.getElementById("kelas").value;
+let status = document.getElementById("status").value;
+
+if(nama=="" || kelas=="" || status==""){
+alert("Lengkapi data dulu!");
+return;
+}
+
+// cek dobel
+let sudah = database[hariIni].find(
+d=>d.nama.toLowerCase()==nama.toLowerCase() && d.kelas==kelas
+);
+
+if(sudah){
+alert("Anda sudah absen hari ini!");
+return;
+}
+
+database[hariIni].push({nama,kelas,status});
+simpan();
+
+alert("Absensi berhasil!");
+document.getElementById("nama").value="";
+document.getElementById("kelas").selectedIndex=0;
+document.getElementById("status").selectedIndex=0;
+}
+
+// ===== PANEL GURU =====
+function bukaGuru(){
+document.getElementById("formSiswa").classList.add("hidden");
+document.getElementById("panelGuru").classList.remove("hidden");
+}
+
+function loginGuru(){
+let pin = document.getElementById("pinGuru").value;
+
+if(pin==="12345"){ // PIN GURU
+document.getElementById("rekapArea").classList.remove("hidden");
+tampilkanRekap();
+}else{
+alert("PIN SALAH BOSS!");
+}
+}
+
+function tampilkanRekap(){
+let filter = document.getElementById("filterKelas").value;
+let data = database[hariIni] || [];
+let tbody = document.getElementById("rekapData");
+tbody.innerHTML="";
+let no=1;
+
+data.forEach(item=>{
+if(filter==="semua" || item.kelas===filter){
+tbody.innerHTML+=`
+<tr>
+<td>${no++}</td>
+<td>${item.nama}</td>
+<td>${item.kelas}</td>
+<td>${item.status}</td>
+</tr>
+`;
+}
+});
+}
+
+function logoutGuru(){
+location.reload();
+}
+</script>
 
 </body>
 </html>
